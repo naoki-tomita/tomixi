@@ -1,10 +1,12 @@
 import React from "react";
 import App, { AppContext } from "next/app";
 import Router from "next/router";
-import "./_app.css";
+
 import { Header } from "../components/Header";
 import { Container } from "../components/Container";
 import { parse } from "../domain/Cookie";
+
+import "./_app.css";
 
 export default class MyApp extends App {
   static async getInitialProps({ Component, ctx }: AppContext) {
