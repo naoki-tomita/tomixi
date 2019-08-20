@@ -1,4 +1,5 @@
 import React, { FC } from "react";
+import { Container } from "./Container";
 
 const Title: FC = ({ children }) => {
   return (
@@ -26,7 +27,9 @@ export const Header: FC = () => {
           padding: "8px 20px"
         }}
       >
-        <Title>tomixi</Title>
+        <Container>
+          <Title>tomixi</Title>
+        </Container>
       </div>
     </>
   );
