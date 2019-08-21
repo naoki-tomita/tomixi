@@ -1,4 +1,4 @@
-import { init } from "./gateway/Users"
+import { init } from "./gateway/Users";
 
 (async () => {
   await init();
