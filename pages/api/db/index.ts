@@ -3,8 +3,7 @@ import { unauthorized, methodNotAllowed } from "../common";
 import { identify } from "../../../gateway/Users";
 import { parse } from "../../../domain/Cookie";
 export default async (req: NextApiRequest, res: NextApiResponse) => {
-  if (req.method.toLowerCase() !== "get") {
-    console.log(`method not allowed: ${req.method}`);
+  if (req.method.toLowerCase() !== "post") {
     return methodNotAllowed(res);
   }
 
@@ -14,7 +13,6 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     }
   ).value;
   if (!session) {
-    console.log(`no session found.`);
     return unauthorized(res);
   }
 

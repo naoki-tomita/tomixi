@@ -199,39 +199,43 @@ export function insertInto<T>(tableName: string) {
   };
 }
 
+function nextable<T>(sql: string) {
+  return {
+    autoIncrement: autoIncrementFactory<T>(sql),
+    primaryKey: primaryKeyFactory<T>(sql),
+    notNull: notNullFactory<T>(sql),
+    unique: uniqueFactory<T>(sql),
+    next: constructorFactory(`${sql},`),
+    build: buildFactory(`${sql})`),
+    exec: execFactory<T>(`${sql})`)
+  };
+}
+
+function uniqueFactory<T>(prefix: string) {
+  return function() {
+    const sql = `${prefix} UNIQUE`;
+    return nextable<T>(sql);
+  };
+}
+
 function autoIncrementFactory<T>(prefix: string) {
   return function() {
     const sql = `${prefix} AUTOINCREMENT`;
-    return {
-      next: constructorFactory(`${sql},`),
-      build: buildFactory(`${sql})`),
-      exec: execFactory<T>(`${sql})`)
-    };
+    return nextable<T>(sql);
   };
 }
 
 function primaryKeyFactory<T>(prefix: string) {
   return function() {
     const sql = `${prefix} PRIMARY KEY`;
-    return {
-      autoIncrement: autoIncrementFactory<T>(sql),
-      next: constructorFactory<T>(`${sql},`),
-      build: buildFactory(`${sql})`),
-      exec: execFactory<T>(`${sql})`)
-    };
+    return nextable<T>(sql);
   };
 }
 
 function notNullFactory<T>(prefix: string) {
   return function() {
     const sql = `${prefix} NOT NULL`;
-    return {
-      autoIncrement: autoIncrementFactory<T>(sql),
-      primaryKey: primaryKeyFactory<T>(sql),
-      next: constructorFactory<T>(`${sql},`),
-      build: buildFactory(`${sql})`),
-      exec: execFactory<T>(`${sql})`)
-    };
+    return nextable<T>(sql);
   };
 }
 
@@ -239,14 +243,7 @@ type DataType = "TEXT" | "INTEGER";
 function typeFactory<T>(prefix: string) {
   return function(type: DataType) {
     const sql = `${prefix} ${type}`;
-    return {
-      autoIncrement: autoIncrementFactory<T>(sql),
-      primaryKey: primaryKeyFactory<T>(sql),
-      notNull: notNullFactory<T>(sql),
-      next: constructorFactory<T>(`${sql},`),
-      build: buildFactory(`${sql})`),
-      exec: execFactory<T>(`${sql})`)
-    };
+    return nextable<T>(sql);
   };
 }
 
@@ -263,7 +260,7 @@ function ifNotExistFactory<T>(tableName: string) {
   return function() {
     return {
       constructor: constructorFactory<T>(
-        `CREATE TABLE IF NOT EXIST ${tableName} (`
+        `CREATE TABLE IF NOT EXISTS ${tableName} (`
       )
     };
   };

@@ -1,5 +1,5 @@
 import { exec, get } from "../driver";
-import { select, createTable } from "../driver/SQLBuilder";
+import { select, createTable, insertInto } from "../driver/SQLBuilder";
 
 export async function init() {
   await createTable("users")
@@ -12,6 +12,7 @@ export async function init() {
     .next("login_id")
     .type("TEXT")
     .notNull()
+    .unique()
     .next("password")
     .type("TEXT")
     .notNull()
@@ -55,7 +56,7 @@ interface User {
   loginId: string;
 }
 
-async function getUser(id: string) {
+function getUser(id: string) {
   return select("*")
     .from<RawUser>("users")
     .where("login_id")
@@ -63,7 +64,7 @@ async function getUser(id: string) {
     .get();
 }
 
-async function getUserWithPassword(id: string, password: string) {
+function getUserWithPassword(id: string, password: string) {
   return select("*")
     .from<RawUser>("users")
     .where("login_id")
@@ -73,24 +74,56 @@ async function getUserWithPassword(id: string, password: string) {
     .get();
 }
 
-async function registerUser(id: string, password: string) {
-  return exec(`
-    INSERT INTO users (login_id, password) VALUES("${id}", "${password}");
-  `);
+function getUserById(userId: number) {
+  return select("*").from<RawUser>("users").where("user_id").equal(userId).get();
 }
 
-const sessionSeed = "abcdefghijklmnopqrstuvwxyz0123456789";
+function registerUser(id: string, password: string) {
+  return insertInto<RawUser>("users")
+    .keys("login_id", "password")
+    .values(id, password)
+    .exec();
+}
+
+const SessionSeed = "abcdefghijklmnopqrstuvwxyz0123456789";
 function generateSession() {
-  return Array(12)
+  return new Array(12)
     .fill(null)
-    .map(() => sessionSeed[Math.random() * sessionSeed.length])
+    .map(() => SessionSeed[Math.floor(Math.random() * SessionSeed.length)])
     .join("");
 }
 
-async function registerSession(userId: number, session: string) {
-  return exec(`
-    INSERT INTO users (user_id, session) VALUES("${userId}", "${session}");
-  `);
+function registerSession(userId: number, session: string) {
+  return insertInto<RawSession>("sessions")
+    .keys("user_id", "session")
+    .values(userId, session)
+    .exec();
+}
+
+function getSession(userId: number, session: string) {
+  return select("*")
+    .from<RawSession>("sessions")
+    .where("user_id")
+    .equal(userId)
+    .and("session")
+    .equal(session)
+    .get();
+}
+
+function getSessionBySession(session: string) {
+  return select("*").from<RawSession>("sessions").where("session").equal(session).get();
+}
+
+function toSession(raw: RawSession): Session {
+  return {
+    userId: raw.user_id,
+    session: raw.session,
+    sessionId: raw.session_id
+  };
+}
+
+function toUser(raw: RawUser): User {
+  return { loginId: raw.login_id, userId: raw.user_id };
 }
 
 export async function register(
@@ -100,11 +133,15 @@ export async function register(
   try {
     const user = await getUser(id);
     if (user) {
+      console.log(`user already exist. id: ${id}`);
       return null;
     }
     await registerUser(id, password);
     const registeredUser = await getUser(id);
     const session = generateSession();
+    await registerSession(registeredUser.user_id, session);
+    const createdSession = await getSession(registeredUser.user_id, session);
+    return toSession(createdSession);
   } catch (e) {
     console.error(e);
     return null;
@@ -115,9 +152,31 @@ export async function login(
   id: string,
   password: string
 ): Promise<Session | null> {
-  return null;
+  const user = await getUser(id);
+  if (!user) {
+    console.log(`user not found. id: ${id}`);
+    return null;
+  }
+  if (user.password !== password) {
+    console.log(`password is incorrect.`);
+    return null;
+  }
+  const session = generateSession();
+  await registerSession(user.user_id, session);
+  const createdSession = await getSession(user.user_id, session);
+  return toSession(createdSession);
 }
 
 export async function identify(session: string): Promise<User | null> {
-  return null;
+  const resolvedSession = await getSessionBySession(session);
+  if (!resolvedSession) {
+    console.log(`Session not found. session: ${session}`);
+    return null;
+  }
+  const user = await getUserById(resolvedSession.user_id);
+  if (!user) {
+    console.log(`User not found. session info: ${JSON.stringify(session)}`);
+    return null;
+  }
+  return toUser(user);
 }

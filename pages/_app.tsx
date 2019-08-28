@@ -1,47 +1,61 @@
 import React from "react";
 import App, { AppContext } from "next/app";
 import Router from "next/router";
+import { NextPageContext } from "next";
+import fetch from "node-fetch";
 
-import { Header } from "../components/Header";
+import { Header, User } from "../components/Header";
 import { Container } from "../components/Container";
-import { parse } from "../domain/Cookie";
 
 import "./_app.css";
 
-export default class MyApp extends App {
+async function identify(origin: string, cookies: string) {
+  const result = await fetch(`${origin}/api/users/identify`, {
+    headers: { cookie: cookies }
+  });
+  if (result.ok) {
+    return await result.json();
+  }
+  return null;
+}
+
+function origin(context?: NextPageContext) {
+  return context ?
+    "http://localhost:3000" : location.origin;
+}
+
+export default class MyApp extends App<{ user?: User }> {
   static async getInitialProps({ Component, ctx }: AppContext) {
-    let pageProps = {};
-    const { req } = ctx;
-    const session = (
-      parse(req.headers.cookie).find(it => it.name === "session") || {
-        value: undefined
-      }
-    ).value;
+    const {req, res} = ctx;
+    const { cookie } = req.headers;
+    const foundUser = await identify(origin(ctx), cookie);
+    console.log(foundUser);
 
     if (
-      !session &&
+      !foundUser &&
       !(req.url.includes("login") || req.url.includes("register"))
     ) {
-      const { res } = ctx;
       process.browser
         ? Router.push("/login")
         : (res.writeHead(302, { Location: "/login" }), res.end());
       return;
     }
 
+    let pageProps = {};
     if (Component.getInitialProps) {
       pageProps = await Component.getInitialProps(ctx);
     }
+    const user: User | undefined = foundUser && { name: foundUser.loginId, icon: "" }
 
-    return { pageProps };
+    return { pageProps, user };
   }
 
   render() {
-    const { Component, pageProps } = this.props;
+    const { Component, pageProps, user } = this.props;
 
     return (
       <>
-        <Header />
+        <Header user={user} />
         <div className="content">
           <Container>
             <Component {...pageProps} />

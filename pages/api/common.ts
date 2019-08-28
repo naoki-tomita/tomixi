@@ -29,3 +29,7 @@ export function methodNotAllowed(res: NextApiResponse) {
   res.status(405);
   res.end(JSON.stringify({}));
 }
+
+export function setSessionCookie(res: NextApiResponse, session: string) {
+  res.setHeader("set-cookie", `mxsession=${session}; path=/;`);
+}

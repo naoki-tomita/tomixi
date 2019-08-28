@@ -18,10 +18,11 @@ const Login: NextPage = () => {
     password: string;
     failedToLogin: boolean;
   }>({ loginId: "", password: "", failedToLogin: false });
+  const { loginId, password, failedToLogin } = state;
 
   async function _login() {
     setState({ ...state, failedToLogin: false });
-    const result = await login(state.loginId, state.password);
+    const result = await login(loginId, password);
     if (result.ok) {
       location.href = "/";
     } else {
@@ -32,13 +33,12 @@ const Login: NextPage = () => {
     <div className="login">
       <div className="wrapper">
         <div className="container">
-          {state.failedToLogin && (
-            <div className="login-failed">Login failed.</div>
-          )}
+          {failedToLogin && <div className="login-failed">Login failed.</div>}
           <div className="field">
             <div className="label">id</div>
             <input
               className="input"
+              value={loginId}
               onChange={({ target: { value: loginId } }) =>
                 setState({ ...state, loginId })
               }
@@ -49,6 +49,7 @@ const Login: NextPage = () => {
             <div className="label">password</div>
             <input
               className="input"
+              value={password}
               onChange={({ target: { value: password } }) =>
                 setState({ ...state, password })
               }

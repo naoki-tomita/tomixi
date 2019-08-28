@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { methodNotAllowed, badRequest } from "./common";
+import { methodNotAllowed, badRequest, setSessionCookie } from "../common";
 import { register } from "../../../gateway/Users";
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
@@ -17,7 +17,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     return badRequest(res);
   }
   res.setHeader("content-type", "application/json");
-  res.setHeader("set-cookie", `mxsession=${session.sessionId}`);
+  setSessionCookie(res, session.session);
   res.status(201);
   res.end("{}");
 };
